@@ -1,6 +1,6 @@
 ﻿namespace DirectoryWatcher.Test
 {
-    public readonly struct TestMetaInfo : IDirectoryWatcherValue
+    public readonly struct TestMetaInfo
     {
         public TestMetaInfo()
         {

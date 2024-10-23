@@ -2,19 +2,10 @@
 using System.ComponentModel;
 using System.Text.Json;
 
-namespace DirectoryWatcher
-{
-    public interface IDirectoryWatcherValue
-    {
-        DateTime LastWriteTimeUtc
-        {
-            get;
-        }
-    }
-
+namespace DirectoryWatcher 
+{ 
     public abstract class DirectoryWatcherBase<TKey, TValue> : IDisposable
-        where TKey: notnull 
-        where TValue : IDirectoryWatcherValue
+        where TKey: notnull
     {
         private readonly string IndexerDirName = ".watcherindex";
 
@@ -70,7 +61,7 @@ namespace DirectoryWatcher
                 {
                     var cachedValue = DeserializeFromIndexFile(file);
                     var dataFile = Path.Combine(Directory.FullName, file.Name);
-                    if (cachedValue.LastWriteTimeUtc == File.GetLastWriteTimeUtc(dataFile))
+                    if (File.GetLastWriteTimeUtc(file.FullName) == File.GetLastWriteTimeUtc(dataFile))
                     {
                         var key = GetKey(file);
                         _cache[key] = cachedValue;
@@ -243,7 +234,9 @@ namespace DirectoryWatcher
                 _cache.Add(key, update);
             }
 
-            SerializeUsingTempFile(new FileInfo(Path.Combine(Index.FullName, file.Name)), update);
+            var indexFile = new FileInfo(Path.Combine(Index.FullName, file.Name));
+            SerializeUsingTempFile(indexFile, update);
+            File.SetLastWriteTimeUtc(indexFile.FullName, file.LastWriteTimeUtc);
         }
 
         private void OnDeleted(object sender, FileSystemEventArgs e)
