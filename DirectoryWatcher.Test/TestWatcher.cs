@@ -14,13 +14,8 @@
 
     public class TestWatcher : DirectoryWatcherBase<string, TestMetaInfo>
     {
-        public TestWatcher(DirectoryInfo directory) : base(directory)
+        public TestWatcher(DirectoryInfo directory) : base(directory, "txt")
         {
-        }
-
-        protected override bool IsFileRelevant(FileInfo file)
-        {
-            return file.Name.EndsWith(".txt");
         }
 
         protected override TestMetaInfo ExtractData(FileInfo file)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Text.Json;
 
 namespace DirectoryWatcher
@@ -21,15 +22,22 @@ namespace DirectoryWatcher
 
         private readonly IDictionary<TKey, TValue> _cache = new Dictionary<TKey, TValue>();
 
+        private readonly string _extension;
+
         private bool disposedValue;
 
         public DirectoryInfo Directory { get; }
 
         private DirectoryInfo Index { get; }
 
-        protected DirectoryWatcherBase(DirectoryInfo directory)
+        protected DirectoryWatcherBase(DirectoryInfo directory, string extension)
         {
             Directory = directory;
+            _extension = extension;
+            if (extension.StartsWith("."))
+            {
+                throw new ArgumentException("Must not start with a .", nameof(extension));
+            }
             Index = new DirectoryInfo(Path.Combine(directory.FullName, IndexerDirName));
             Init();
 
@@ -47,7 +55,7 @@ namespace DirectoryWatcher
             _fileSystemWatcher.Deleted += OnDeleted;
             _fileSystemWatcher.Renamed += OnRenamed;
 
-            _fileSystemWatcher.Filter = "*";
+            _fileSystemWatcher.Filter = "*." + extension;
             _fileSystemWatcher.IncludeSubdirectories = false;
             _fileSystemWatcher.EnableRaisingEvents = true;
         }
@@ -159,7 +167,7 @@ namespace DirectoryWatcher
 
         protected virtual bool IsFileRelevant(FileInfo file)
         {
-            return true;
+            return file.Name.EndsWith("." + _extension);
         }
 
         private bool IsFileRelevantInternal(FileInfo file)
