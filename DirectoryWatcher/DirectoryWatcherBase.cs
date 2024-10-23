@@ -73,6 +73,10 @@ namespace DirectoryWatcher
                     {
                         _cache[GetKey(file)] = cachedValue;
                     }
+                    else
+                    {
+                        file.Delete();
+                    }
                 }
             }
             else
