@@ -62,6 +62,7 @@ namespace DirectoryWatcher
 
         private void Init()
         {
+            var cachedKeys = new ConcurrentBag<TKey>();
             if (Index.Exists)
             {
                 var indexFiles = Index.GetFiles();
@@ -71,7 +72,9 @@ namespace DirectoryWatcher
                     var dataFile = Path.Combine(Directory.FullName, file.Name);
                     if (cachedValue.LastWriteTimeUtc == File.GetLastWriteTimeUtc(dataFile))
                     {
-                        _cache[GetKey(file)] = cachedValue;
+                        var key = GetKey(file);
+                        _cache[key] = cachedValue;
+                        cachedKeys.Add(key);
                     }
                     else
                     {
@@ -85,20 +88,19 @@ namespace DirectoryWatcher
             }
 
             var existingKeys = new ConcurrentBag<TKey>();
-
             var fileInfos = Directory.GetFiles();
             fileInfos.AsParallel().ForAll(
                 fileInfo =>
                 {
-                    var key = GetKey(fileInfo);
-                    existingKeys.Add(key);
-
                     if (!IsFileRelevantInternal(fileInfo))
                     {
                         return;
                     }
 
-                    if (_cache.ContainsKey(key))
+                    var key = GetKey(fileInfo);
+                    existingKeys.Add(key);
+
+                    if (cachedKeys.Contains(key))
                     {
                         return;
                     }
