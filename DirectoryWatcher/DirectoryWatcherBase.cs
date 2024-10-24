@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace DirectoryWatcher 
@@ -53,30 +54,38 @@ namespace DirectoryWatcher
 
         private void Init()
         {
-            var cachedKeys = new ConcurrentBag<TKey>();
+            var cachedValues = new ConcurrentBag<Tuple<TKey, TValue>>();
             if (Index.Exists)
             {
                 var indexFiles = Index.GetFiles();
-                foreach (var file in indexFiles)
+                indexFiles.AsParallel().ForAll(file =>
                 {
-                    var cachedValue = DeserializeFromIndexFile(file);
                     var dataFile = Path.Combine(Directory.FullName, file.Name);
                     if (File.GetLastWriteTimeUtc(file.FullName) == File.GetLastWriteTimeUtc(dataFile))
                     {
-                        var key = GetKey(file);
-                        _cache[key] = cachedValue;
-                        cachedKeys.Add(key);
+                        var cachedValue = DeserializeFromIndexFile(file);
+                        if (cachedValue != null)
+                        {
+                            var key = GetKey(file);
+                            cachedValues.Add(Tuple.Create(key, cachedValue));
+                        }
                     }
                     else
                     {
                         file.Delete();
                     }
+                });
+                
+                foreach (var keyValue in cachedValues)
+                {
+                    _cache[keyValue.Item1] = keyValue.Item2;
                 }
             }
             else
             {
                 Index.Create();
             }
+            var cachedKeys = new ConcurrentBag<TKey>(cachedValues.Select(v => v.Item1));
 
             var existingKeys = new ConcurrentBag<TKey>();
             var fileInfos = Directory.GetFiles();
